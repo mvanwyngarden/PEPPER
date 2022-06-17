@@ -77,6 +77,11 @@ def Mcore_to_Rcore(Xiron, mcore):
     
     return radius
     
+def evaluate_X(Delta_Rrcb, Teq, Mcore, Tkh_Myr, Xiron):
+    #solve for mass envelope frac using the radius of the radiative convect boundary
+    
+    #for density of core should I use planet.radius or core mass to core radius function? 
+    rho_core=planet
     
 
 
