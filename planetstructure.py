@@ -38,8 +38,12 @@ def tables():
     return radtable, masstable
     
 def Rcore_to_Mcore(Rcore, Xiron):
-    '''Returns the mass of a planet given a radius value in Earth radii. 
-    Mass-radius relationships derived from Li Zeng's models of Fe-MgSiO3 planets'''
+    '''Returns the mass of a planet in Earth masses. 
+    Mass-radius relationships derived from Li Zeng's models of Fe-MgSiO3 planets
+    
+    Parameters: 
+        Rcore - planet core radius in Earth radii
+        Xiron - iron mass fraction '''
     
     pos, coeff1, coeff2 = weights(Xiron)
     radtable, masstable = tables()
@@ -63,8 +67,12 @@ def Rcore_to_Mcore(Rcore, Xiron):
     
 
 def Mcore_to_Rcore(Mcore, Xiron):
-    '''Returns the radius of a planet given an Xiron fraction and a mass value in Earth masses. 
-    Mass-radius relationships derived from Li Zeng's models of Fe-MgSiO3 planets'''
+    '''Returns the radius of a planet in Earth radii
+    Mass-radius relationships derived from Li Zeng's models of Fe-MgSiO3 planets
+    
+    Parameters: 
+        Mcore - planet mass in Earth masses
+        Xiron - iron mass fraction'''
     
     pos, coeff1, coeff2 = weights(Xiron)
     radtable, masstable = tables()
@@ -125,11 +133,11 @@ def calc_X_adiabatic(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
     Calculates the envelope mass fraction X
     
     Parameters: 
-        Rcore - cm
-        DR_rcb - the width of the adiabatic portion of the atmosphere in cm (float) 
+        Rcore - planet core radius in cm
+        DR_rcb - the width of the adiabatic portion of the atmosphere in cm  
         Tkh_Myr - cooling timescale in Myr
         Teq- planet equilibrium temp in K
-        Xiron - '''
+        Xiron - envelope mass fraction'''
     
    
       
@@ -145,7 +153,7 @@ def calc_X_adiabatic(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
     
     #using eq 13 from Owen & Wu 2017, factor out X
     
-    rho_rcb_factoroutx = calc_rho_rcb( Rcore, np.log10(DR_rcb), 1, Tkh_Myr, Teq, Xiron)
+    rho_rcb_factoroutx = calc_rho_rcb( Rcore, DR_rcb, 1, Tkh_Myr, Teq, Xiron)   
     
     
     #X=Menv/Mcore
@@ -155,7 +163,7 @@ def calc_X_adiabatic(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
                     (cs.G * cs.Mearth2g(Rcore_to_Mcore(cs.cm2Rearth(Rcore), Xiron))) / (c_atmos_sq * Rrcb))**(1/(cs.gamma-1)) * get_I2(Rcore, Rrcb)
    
     #because Menv/Mcore=X we can solve for X 
-    X = Menv_Mcore**(1/(1+(1/(1+cs.alpha))))
+    X = Menv_Mcore**(1 / (1 + (1 / (1+cs.alpha))))
    
     
     return X
@@ -165,13 +173,13 @@ def calc_coredensity(Rcore, Xiron):
     '''Returns the average density of the core in cgs
     Rcore - cm'''
     
-    rho_core_calc = cs.Mearth2g(Rcore_to_Mcore(cs.cm2Rearth(Rcore), Xiron))/ ( (4/3)*np.pi*Rcore**3)
+    rho_core_calc = cs.Mearth2g(Rcore_to_Mcore(cs.cm2Rearth(Rcore), Xiron)) / ((4/3)* np.pi* Rcore**3)
    
     return rho_core_calc
 
 
 
-def calc_rho_rcb(Rcore, lg_DR_rcb, X, Tkh_Myr, Teq, Xiron): 
+def calc_rho_rcb(Rcore, DR_rcb, X, Tkh_Myr, Teq, Xiron): 
     '''Calculate the density at the rcb
     
     Parameters: 
@@ -182,7 +190,7 @@ def calc_rho_rcb(Rcore, lg_DR_rcb, X, Tkh_Myr, Teq, Xiron):
     
     
     #height of the rcb
-    Rrcb = 10**lg_DR_rcb + Rcore
+    Rrcb = DR_rcb + Rcore    
     
     I2_I1 = get_I2_I1(Rcore, Rrcb)
     
@@ -207,7 +215,6 @@ def calc_Rplanet(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
      #because the isothermal layer is assumed to be thin
      
      #height of the rcb
-     
      Rrcb = DR_rcb + Rcore
      
      Mcore = Rcore_to_Mcore(cs.cm2Rearth(Rcore), Xiron)
@@ -217,12 +224,11 @@ def calc_Rplanet(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
      
      #pressure at the photosphere
      
-     #do I need to change whether you insert Rrcb here? 
      _, rho_phot, H = calc_photo_pressure( Rrcb, Mcore, Teq)
     
     
      #f=Rp/Rrcb
-     rho_rcb = calc_rho_rcb(Rcore, np.log10(DR_rcb), X, Tkh_Myr, Teq, Xiron)
+     rho_rcb = calc_rho_rcb(Rcore, DR_rcb, X, Tkh_Myr, Teq, Xiron)  
      Rp_Rrcb = 1 + (H/Rrcb) * np.log(rho_rcb/rho_phot)
      
     
@@ -235,9 +241,15 @@ def calc_Rplanet(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
         return Rp_Rrcb, Rplanet
     
  
-def calc_X_isothermal(Rp, Mcore, Teq, Xiron): 
-    #we'll need this equation if the adiabatic layer is less than 1 scale height
-    #figure out how/where you want to call this
+def calc_X_isothermal(Rp, Mcore, Teq, Xiron):
+    '''Returns the envelope mass fraction and planet radius in cgs units. This function is only used if the adiabatic layer is less than 1 scale height
+    
+    Parameters: 
+        Rp - planet radius in cm
+        Mcore - planet mass in Earth masses
+        Teq - equilibrium temp in K
+        Xiron - iron mass fraction '''
+  
     Rcore = cs.Rearth2cm(Mcore_to_Rcore(Mcore, Xiron))
     
     _, rho_phot, H = calc_photo_pressure(Rp, Mcore, Teq)
@@ -253,6 +265,14 @@ def calc_X_isothermal(Rp, Mcore, Teq, Xiron):
     
     
 def calc_photo_pressure( R, Mcore, Teq): 
+    '''Returns the photospheric pressure, density of the photosphere, and scale height in cgs units
+    
+    Parameters: 
+        R - radius in cm, the user will input Rrcb or Rp depending on if you wish to calculate the envelope mass fraction
+        of the adiabatic or isothermal layer
+        Mcore - mass in Earth masses
+        Teq - equilibrium temp in K'''
+    
     #here you will either insert Rrcb or Rp depending on if you need the adiabatic or isothermal layer 
     pressure_phot = (2/3 * (cs.G*cs.Mearth2g(Mcore)/(R**2.*cs.kappa0*Teq**cs.beta)))**(1/(1+cs.alpha))
     
@@ -264,9 +284,16 @@ def calc_photo_pressure( R, Mcore, Teq):
    
     
 def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
+    '''Returns the envelope mass fraction and planet radius at the current age of the system
     
-    #this will only get called when evaluating the gaseous planet because we will use the 
-    #current radius of the planet as Rp 
+    Parameters: 
+        Rp - current planet radius in Earth radii
+        Mcore - planet mass in Earth masses
+        planet_age - current age of the system in Myr
+        Teq - equilibrium temp in K
+        Xiron - iron mass fracttion'''
+        
+    #this will only get called when evaluating the gaseous planet 
     #we will then make sure that the Rplanet returned converges with the current Rp input by the user 
     Rcore = Mcore_to_Rcore(Mcore, Xiron)
     
@@ -278,8 +305,9 @@ def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
     DR_rcb_guess = cs.Rearth2cm(Rp) - Rcore
     lg_DR_rcb_guess = np.log10(DR_rcb_guess)
     
-    #pdb.set_trace()
+   
     #find the DR_rcb where the calculated Rplanet is equal to the observed Rplanet 
+    #use log values to make the solver behave better
     lg_DR_rcb_sol = fsolve(Rplanet_solver_eq, lg_DR_rcb_guess, args=(Rp, Mcore, Teq, planet_age, Xiron))
     
     H = calc_photo_pressure( cs.Rearth2cm(Rp), Mcore, Teq)[2]
@@ -287,13 +315,16 @@ def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
     DR_rcb_sol = 10**lg_DR_rcb_sol
   
     if DR_rcb_sol > H: 
+        
         X = calc_X_adiabatic(Rcore, DR_rcb_sol, planet_age, Teq, Xiron)
         Rp_Rrcb, Rplanet = calc_Rplanet(Rcore, DR_rcb_sol, planet_age, Teq, Xiron)
         return X, Rp_Rrcb, Rplanet
+    
     else: 
+        
         X, Rp_Rcore, Rplanet = calc_X_isothermal( cs.Rearth2cm(Rp), Mcore, Teq, Xiron)
         return X, Rp_Rcore, Rplanet
-  #this returns the X and Rplanet at the current age of the system  
+      
     
 
 def Rplanet_solver_eq(lg_DR_rcb, Rp, Mcore, Teq, planet_age, Xiron): 
@@ -302,12 +333,81 @@ def Rplanet_solver_eq(lg_DR_rcb, Rp, Mcore, Teq, planet_age, Xiron):
     Rcore = cs.Rearth2cm(Mcore_to_Rcore(Mcore, Xiron))
    
     DR_rcb = 10**lg_DR_rcb
-    print(DR_rcb)
-    #does Rplanet return a value in cm? 
+    
     Rp_Rrcb, Rplanet = calc_Rplanet(Rcore, DR_rcb, planet_age, Teq, Xiron)
     
     return cs.Rearth2cm(Rp) - Rplanet
 
+
+def solve_envelope_structure(X, Mcore, Tkh_Myr, Teq, Xiron): 
+    '''given an envelope mass fraction this finds the radius of the rcb and returns a value for 
+    the radius of the planet at the cooling timescale
+    
+    Parameters: 
+        X - envelope mass fraction
+        Mcore - mass of the enveloped planet in Earth masses
+        Tkh_Myr - cooling timescale in Myr
+        Teq - equilibrium temp of the enveloped in K
+        Xiron - Iron mass fraction'''
+    
+    
+    #find the core radius using the given mass value 
+    Rcore = cs.Rearth2cm(Mcore_to_Rcore(Mcore, Xiron))
+    
+    #equation from Owen & Wu 2017
+    DR_rcb_guess = 2 * Rcore * (X/0.027)**(1/1.31) * (Mcore/5)**(-0.17)
+
+    lg_DR_rcb_guess = np.log10(DR_rcb_guess)
+    
+    #optimization function behaves better using log inputs
+    lg_DR_rcb_sol = fsolve(Rrcb_solver_eq, lg_DR_rcb_guess, args = (Mcore, Xiron, X, Tkh_Myr, Teq))
+    
+    DR_rcb_sol = 10**lg_DR_rcb_sol
+    
+    Rrcb_sol = DR_rcb_sol + Rcore
+    
+    _, rho_phot, H = calc_photo_pressure( Rrcb_sol, Mcore, Teq)
+   
+    rho_rcb = calc_rho_rcb(Rcore, DR_rcb_sol, X, Tkh_Myr, Teq, Xiron)  
+    
+    Rp_Rrcb = 1 + (H/Rrcb_sol) * np.log(rho_rcb/rho_phot)
+    
+    Rplanet = Rp_Rrcb * Rrcb_sol
+    
+    return Rplanet, DR_rcb_sol
+    
+    
+    
+def Rrcb_solver_eq( lg_DR_rcb, Mcore, Xiron, X, Tkh_Myr, Teq): 
+    '''Analytically computes the envelope mass fraction and returns the difference between this X value 
+    and the value returned by Rplanet_solver. The difference should be ~0.
+    
+    Parameters: 
+        lg_DR_rcb - log of the width of the rcb
+        Mcore - mass of the enveloped planet in Earth masses
+        Xiron - iron mass fraction
+        X - envelope mass fraction
+        Tkh_Myr- cooling timescale in Myr
+        Teq - equilibrium temp of the enveloped planet in K'''
+    
+    Rcore = cs.Rearth2cm(Mcore_to_Rcore(Mcore, Xiron))
+    
+    DR_rcb = 10**lg_DR_rcb
+    
+    Rrcb = DR_rcb + Rcore
+    
+    rho_core = cs.Mearth2g(Mcore) / (4/3 * np.pi * Rcore**3)
+    
+    rho_rcb = calc_rho_rcb(Rcore, DR_rcb, X, Tkh_Myr, Teq, Xiron)
+    
+    c_atmos_sq = cs.kb * Teq / cs.mu
+    
+    adiabatic_grad = (cs.gamma-1)/cs.gamma
+    
+    X_analytic = 3 * (Rrcb/Rcore)**3 * (rho_rcb/rho_core) * (adiabatic_grad *\
+                    (cs.G * cs.Mearth2g(Rcore_to_Mcore(cs.cm2Rearth(Rcore), Xiron))) / (c_atmos_sq * Rrcb))**(1/(cs.gamma-1)) * get_I2(Rcore, Rrcb)
+    
+    return X_analytic - X
 
 
 
