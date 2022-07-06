@@ -28,7 +28,7 @@ class Star():
 class Planet():
     
     def __init__(self,radius, period, isrocky, radius_err=0, period_err=0, Xiron=1/3, albedo=0):
-        self.radius = radius
+        self.radius = radius   #make numpy array with vals from a guassian distribution whose standard dev is rad err
         self.radius_err = radius_err
         self.period = period
         self.period_err = period_err
@@ -39,14 +39,16 @@ class Planet():
         
        
     def calcsemimajor(self, star):
-            self.a = ((( cs.G *cs.Msun(star.mass)*(self.period*cs.d2s)**2)/(4*(np.pi)**2))**(1/3))/cs.Au2m
+            self.a = ((( cs.G *cs.Msun2g(star.mass)*(self.period*cs.d2s)**2)/(4*(np.pi)**2))**(1/3))
             
     def calcplanettemp(self, star):
-            self.Teq = (1-self.albedo)**(1/4)*star.Teff*np.sqrt(cs.Rsun(star.radius)/(2*self.a*cs.Au2m))
+            self.Teq = (1-self.albedo)**(1/4)*star.Teff*np.sqrt(cs.Rsun2cm(star.radius)/(2*self.a))
             
     def calcMcore(self):
         if self.isrocky: 
-            self.Mcore = ps.Rcore_to_Mcore(self)
+            self.Mcore = ps.Rcore_to_Mcore(self.radius, self.Xiron)
+            
+    
             
         
             
