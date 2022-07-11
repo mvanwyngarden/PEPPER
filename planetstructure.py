@@ -6,6 +6,7 @@ from scipy.integrate import quad
 from bisect import bisect_left
 import constants as cs
 from scipy.optimize import fsolve
+import time
 import pdb
 
 def weights(Xiron):
@@ -29,13 +30,7 @@ def weights(Xiron):
         coeff2 = diff2/.025
   
     return pos, coeff1, coeff2
-    
-    
-def tables():
-    radtable = np.loadtxt(r'C:/Users/madir/Radius_Valleyproj/radiustable.csv', delimiter=',')
-    masstable = np.loadtxt(r'C:/Users/madir/Radius_Valleyproj/masstable.csv', delimiter=',')
-    
-    return radtable, masstable
+
     
 def Rcore_to_Mcore(Rcore, Xiron):
     '''Returns the mass of a planet in Earth masses. 
@@ -46,11 +41,9 @@ def Rcore_to_Mcore(Rcore, Xiron):
         Xiron - iron mass fraction '''
     
     pos, coeff1, coeff2 = weights(Xiron)
-    radtable, masstable = tables()
     
-    
-    f1 = interpolate.interp1d(masstable[:,pos-1], radtable[:,pos-1], bounds_error=False)
-    f2 = interpolate.interp1d(masstable[:,pos], radtable[:,pos], bounds_error=False)
+    f1 = interpolate.interp1d(cs.masstable[:,pos-1], cs.radtable[:,pos-1], bounds_error=False)
+    f2 = interpolate.interp1d(cs.masstable[:,pos], cs.radtable[:,pos], bounds_error=False)
     massarr=np.logspace(-2,2,500)
     radtable1=f1(massarr)
     radtable2=f2(massarr)
@@ -75,10 +68,10 @@ def Mcore_to_Rcore(Mcore, Xiron):
         Xiron - iron mass fraction'''
     
     pos, coeff1, coeff2 = weights(Xiron)
-    radtable, masstable = tables()
     
-    f1 = interpolate.interp1d(radtable[:,pos-1], masstable[:,pos-1], bounds_error=False)
-    f2 = interpolate.interp1d(radtable[:,pos], masstable[:,pos], bounds_error=False)
+    f1 = interpolate.interp1d(cs.radtable[:,pos-1], cs.masstable[:,pos-1], bounds_error=False)
+    f2 = interpolate.interp1d(cs.radtable[:,pos], cs.masstable[:,pos], bounds_error=False)
+   
     radarr=np.linspace(.1,10,500)
     masstable1 = f1(radarr)
     masstable2 = f2(radarr)
@@ -87,7 +80,6 @@ def Mcore_to_Rcore(Mcore, Xiron):
         masses = coeff2*masstable2
     else: 
         masses = coeff1*masstable1 + coeff2*masstable2
-
     
     #use linear interpolation to find the radius value for a given mass value as a function of Xiron 
     radiusfunc = interpolate.interp1d(masses, radarr, bounds_error=False)
@@ -149,7 +141,7 @@ def calc_X_adiabatic(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
     adiabatic_grad = (cs.gamma-1)/cs.gamma
     
     #average core density 
-    rho_core = calc_coredensity(Rcore, Xiron)
+    rho_core = cs.Mearth2g(Rcore_to_Mcore(cs.cm2Rearth(Rcore), Xiron)) / ((4/3)* np.pi* Rcore**3)
     
     #using eq 13 from Owen & Wu 2017, factor out X
     
@@ -164,26 +156,17 @@ def calc_X_adiabatic(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
    
     #because Menv/Mcore=X we can solve for X 
     X = Menv_Mcore**(1 / (1 + (1 / (1+cs.alpha))))
-   
     
+
     return X
     
-
-def calc_coredensity(Rcore, Xiron): 
-    '''Returns the average density of the core in cgs
-    Rcore - cm'''
-    
-    rho_core_calc = cs.Mearth2g(Rcore_to_Mcore(cs.cm2Rearth(Rcore), Xiron)) / ((4/3)* np.pi* Rcore**3)
-   
-    return rho_core_calc
-
 
 
 def calc_rho_rcb(Rcore, DR_rcb, X, Tkh_Myr, Teq, Xiron): 
     '''Calculate the density at the rcb
     
     Parameters: 
-        PlanetarySystem object
+        Rcore - planet radius in Earth radii
         DR_rcb- the width of the adiabatic portion of the atmosphere in cm (float) 
         X - envelope mass fraction (float)
        Tkh_Myr - cooling timescale in Myr'''
@@ -206,14 +189,14 @@ def calc_rho_rcb(Rcore, DR_rcb, X, Tkh_Myr, Teq, Xiron):
 def calc_Rplanet(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
      '''Returns the radius of the planet over the radius to the rcb and returns the radius of the planet 
      Parameters: 
-         PlanetarySystem object
+         Rcore - planet radius in Earth radii
          DR_rcb- the width of the adiabatic portion of the atmosphere in cm (float)
          Tkh_Myr- cooling timescale in Myr'''
      
      #calculate the denisty at the photosphere
      #pressure at the rcb is used as an approx for photospheric pressure 
      #because the isothermal layer is assumed to be thin
-     
+   
      #height of the rcb
      Rrcb = DR_rcb + Rcore
      
@@ -238,6 +221,8 @@ def calc_Rplanet(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
          
      else: 
         Rplanet = Rp_Rrcb * Rrcb
+      
+        
         return Rp_Rrcb, Rplanet
     
  
@@ -295,6 +280,7 @@ def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
         
     #this will only get called when evaluating the gaseous planet 
     #we will then make sure that the Rplanet returned converges with the current Rp input by the user 
+
     Rcore = Mcore_to_Rcore(Mcore, Xiron)
     
     if (Rp < Rcore):
@@ -305,12 +291,14 @@ def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
     DR_rcb_guess = cs.Rearth2cm(Rp) - Rcore
     lg_DR_rcb_guess = np.log10(DR_rcb_guess)
     
-   
+    
     #find the DR_rcb where the calculated Rplanet is equal to the observed Rplanet 
     #use log values to make the solver behave better
+    
     lg_DR_rcb_sol = fsolve(Rplanet_solver_eq, lg_DR_rcb_guess, args=(Rp, Mcore, Teq, planet_age, Xiron))
     
-    H = calc_photo_pressure( cs.Rearth2cm(Rp), Mcore, Teq)[2]
+    H = cs.kb * Teq * cs.Rearth2cm(Rp)** 2 / ( cs.mu * cs.G * cs.Mearth2g(Mcore))
+    #H = calc_photo_pressure(cs.Rearth2cm(Rp), Mcore, Teq)[2]
     
     DR_rcb_sol = 10**lg_DR_rcb_sol
   
@@ -318,6 +306,7 @@ def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
         
         X = calc_X_adiabatic(Rcore, DR_rcb_sol, planet_age, Teq, Xiron)
         Rp_Rrcb, Rplanet = calc_Rplanet(Rcore, DR_rcb_sol, planet_age, Teq, Xiron)
+       
         return X, Rp_Rrcb, Rplanet
     
     else: 
@@ -333,15 +322,15 @@ def Rplanet_solver_eq(lg_DR_rcb, Rp, Mcore, Teq, planet_age, Xiron):
     Rcore = cs.Rearth2cm(Mcore_to_Rcore(Mcore, Xiron))
    
     DR_rcb = 10**lg_DR_rcb
-    
+   
     Rp_Rrcb, Rplanet = calc_Rplanet(Rcore, DR_rcb, planet_age, Teq, Xiron)
-    
+   
     return cs.Rearth2cm(Rp) - Rplanet
 
 
 def solve_envelope_structure(X, Mcore, Tkh_Myr, Teq, Xiron): 
     '''given an envelope mass fraction this finds the radius of the rcb and returns a value for 
-    the radius of the planet at the cooling timescale
+    the radius of the planet at a given time
     
     Parameters: 
         X - envelope mass fraction
