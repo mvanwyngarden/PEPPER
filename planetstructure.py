@@ -143,6 +143,7 @@ def calc_X_adiabatic(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
     #average core density 
     rho_core = cs.Mearth2g(Rcore_to_Mcore(cs.cm2Rearth(Rcore), Xiron)) / ((4/3)* np.pi* Rcore**3)
     
+    
     #using eq 13 from Owen & Wu 2017, factor out X
     
     rho_rcb_factoroutx = calc_rho_rcb( Rcore, DR_rcb, 1, Tkh_Myr, Teq, Xiron)   
@@ -166,7 +167,7 @@ def calc_rho_rcb(Rcore, DR_rcb, X, Tkh_Myr, Teq, Xiron):
     '''Calculate the density at the rcb
     
     Parameters: 
-        Rcore - planet radius in Earth radii
+        Rcore - planet radius in cm
         DR_rcb- the width of the adiabatic portion of the atmosphere in cm (float) 
         X - envelope mass fraction (float)
        Tkh_Myr - cooling timescale in Myr'''
@@ -189,14 +190,14 @@ def calc_rho_rcb(Rcore, DR_rcb, X, Tkh_Myr, Teq, Xiron):
 def calc_Rplanet(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
      '''Returns the radius of the planet over the radius to the rcb and returns the radius of the planet 
      Parameters: 
-         Rcore - planet radius in Earth radii
+         Rcore - planet radius in cm
          DR_rcb- the width of the adiabatic portion of the atmosphere in cm (float)
          Tkh_Myr- cooling timescale in Myr'''
      
      #calculate the denisty at the photosphere
      #pressure at the rcb is used as an approx for photospheric pressure 
      #because the isothermal layer is assumed to be thin
-   
+     
      #height of the rcb
      Rrcb = DR_rcb + Rcore
      
@@ -214,8 +215,6 @@ def calc_Rplanet(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
      rho_rcb = calc_rho_rcb(Rcore, DR_rcb, X, Tkh_Myr, Teq, Xiron)  
      Rp_Rrcb = 1 + (H/Rrcb) * np.log(rho_rcb/rho_phot)
      
-    
-     
      if Rp_Rrcb < 1: 
          print('Error: rho_rcb < rho_phot')
          
@@ -223,7 +222,7 @@ def calc_Rplanet(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
         Rplanet = Rp_Rrcb * Rrcb
       
         
-        return Rp_Rrcb, Rplanet
+        return X, Rp_Rrcb, Rplanet
     
  
 def calc_X_isothermal(Rp, Mcore, Teq, Xiron):
@@ -280,7 +279,7 @@ def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
         
     #this will only get called when evaluating the gaseous planet 
     #we will then make sure that the Rplanet returned converges with the current Rp input by the user 
-
+    
     Rcore = Mcore_to_Rcore(Mcore, Xiron)
     
     if (Rp < Rcore):
@@ -288,25 +287,24 @@ def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
     
     Rcore = cs.Rearth2cm(Rcore)
     
-    DR_rcb_guess = cs.Rearth2cm(Rp) - Rcore
-    lg_DR_rcb_guess = np.log10(DR_rcb_guess)
+    lg_DR_rcb_guess = np.log10(cs.Rearth2cm(Rp) - Rcore)
     
     
     #find the DR_rcb where the calculated Rplanet is equal to the observed Rplanet 
     #use log values to make the solver behave better
-    
+   
     lg_DR_rcb_sol = fsolve(Rplanet_solver_eq, lg_DR_rcb_guess, args=(Rp, Mcore, Teq, planet_age, Xiron))
     
     H = cs.kb * Teq * cs.Rearth2cm(Rp)** 2 / ( cs.mu * cs.G * cs.Mearth2g(Mcore))
-    #H = calc_photo_pressure(cs.Rearth2cm(Rp), Mcore, Teq)[2]
     
     DR_rcb_sol = 10**lg_DR_rcb_sol
-  
+    #print(DR_rcb_sol)
     if DR_rcb_sol > H: 
         
-        X = calc_X_adiabatic(Rcore, DR_rcb_sol, planet_age, Teq, Xiron)
-        Rp_Rrcb, Rplanet = calc_Rplanet(Rcore, DR_rcb_sol, planet_age, Teq, Xiron)
-       
+        #X = calc_X_adiabatic(Rcore, DR_rcb_sol, planet_age, Teq, Xiron)
+        X, Rp_Rrcb, Rplanet = calc_Rplanet(Rcore, DR_rcb_sol, planet_age, Teq, Xiron)
+        
+        
         return X, Rp_Rrcb, Rplanet
     
     else: 
@@ -314,17 +312,18 @@ def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
         X, Rp_Rcore, Rplanet = calc_X_isothermal( cs.Rearth2cm(Rp), Mcore, Teq, Xiron)
         return X, Rp_Rcore, Rplanet
       
-    
 
 def Rplanet_solver_eq(lg_DR_rcb, Rp, Mcore, Teq, planet_age, Xiron): 
-    
+        
+  
     #evaluate the envelope mass fraction and atmosphere structure for this mass/radius guess
     Rcore = cs.Rearth2cm(Mcore_to_Rcore(Mcore, Xiron))
    
     DR_rcb = 10**lg_DR_rcb
    
-    Rp_Rrcb, Rplanet = calc_Rplanet(Rcore, DR_rcb, planet_age, Teq, Xiron)
+    X, Rp_Rrcb, Rplanet = calc_Rplanet(Rcore, DR_rcb, planet_age, Teq, Xiron)
    
+    
     return cs.Rearth2cm(Rp) - Rplanet
 
 
@@ -362,6 +361,7 @@ def solve_envelope_structure(X, Mcore, Tkh_Myr, Teq, Xiron):
     Rp_Rrcb = 1 + (H/Rrcb_sol) * np.log(rho_rcb/rho_phot)
     
     Rplanet = Rp_Rrcb * Rrcb_sol
+    
     
     return Rplanet, DR_rcb_sol
     

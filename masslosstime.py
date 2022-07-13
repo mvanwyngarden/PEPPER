@@ -24,7 +24,7 @@ def calc_efficiency(Mcore, Rplanet):
     
     return eta
 
-def calc_masslosstime_rocky(system, Tkh_Myr):
+def calc_masslosstime_rocky(system,Rcore, Mcore, a, Teq, Xiron, Tkh_Myr):
     '''Returns the maximized envelope width and the maximized scaled mass loss timescale for the rocky planet 
     
     Parameters: 
@@ -32,33 +32,33 @@ def calc_masslosstime_rocky(system, Tkh_Myr):
         Tkh_Myr - cooling timescale in Myr'''
     
     #set constraints on envelope width for optimization function
-    DR_rcb_min = 0.1 * cs.Rearth2cm(system.planetRocky.radius)
-    DR_rcb_max = 5 * cs.Rearth2cm(system.planetRocky.radius)
+    DR_rcb_min = 0.1 * cs.Rearth2cm(Rcore)
+    DR_rcb_max = 5 * cs.Rearth2cm(Rcore)
     
     #optimization function that finds the value of DR_rcb that maximize mass loss time scale
-    result=minimize_scalar(max_tmdot_objective, bounds=(DR_rcb_min, DR_rcb_max), args=(system, Tkh_Myr), method='bounded')
+    result=minimize_scalar(max_tmdot_objective, bounds=(DR_rcb_min, DR_rcb_max), args=(Rcore, Mcore, Teq, Xiron, Tkh_Myr), method='bounded')
     
     if (result.success):
         DR_rcbmaximized = result.x
         #find maximized envelope mass fraction 
-        X_max = ps.calc_X_adiabatic(cs.Rearth2cm(system.planetRocky.radius), DR_rcbmaximized, Tkh_Myr, system.planetRocky.Teq, system.planetRocky.Xiron)
+        #X_max = ps.calc_X_adiabatic(cs.Rearth2cm(Rcore), DR_rcbmaximized, Tkh_Myr, Teq, Xiron)
         #find eta using Rp
-        _, Rplanet = ps.calc_Rplanet(cs.Rearth2cm(system.planetRocky.radius), DR_rcbmaximized, Tkh_Myr, system.planetRocky.Teq, system.planetRocky.Xiron)
-        eta = calc_efficiency(cs.Mearth2g(system.planetRocky.Mcore), Rplanet)
+        X_max, _, Rplanet = ps.calc_Rplanet(cs.Rearth2cm(Rcore), DR_rcbmaximized, Tkh_Myr, Teq, Xiron)
+        eta = calc_efficiency(cs.Mearth2g(Mcore), Rplanet)
         
-        masslosstime_max_rocky=masslosstime_eq(system.planetRocky.Mcore, system.planetRocky.a, X_max, Rplanet, eta)
+        masslosstime_max_rocky=masslosstime_eq(Mcore, a, X_max, Rplanet, eta)
         
         system.planetRocky.X_max = X_max 
         system.planetRocky.DR_rcbmax = DR_rcbmaximized
         system.planetRocky.scaled_masslosstime_max = masslosstime_max_rocky
         
-        return DR_rcbmaximized, masslosstime_max_rocky
+        return masslosstime_max_rocky
     
     else: 
-        print('Failed to find solution for maximum mass-loss timescale for rocky planet')
-        return -1
+        print('Failed to find solution for maximum mass-loss timescale for rocky planet with radius', Rcore)
+        raise ValueError('Failed to find solution for maximum mass-loss timescale for rocky planet with radius', Rcore)
         
-def max_tmdot_objective(DR_rcb, system, Tkh_Myr):
+def max_tmdot_objective(DR_rcb, Rcore, Mcore, Teq, Xiron, Tkh_Myr):
     '''Returns the scaled mass loss timescale that we wish to maximize
     
     Parameters: 
@@ -66,11 +66,10 @@ def max_tmdot_objective(DR_rcb, system, Tkh_Myr):
         system - Planetary system object containing a rocky and enveloped planet and a star
         Tkh_Myr - cooling timescale in Myr'''
     
-    X = ps.calc_X_adiabatic(cs.Rearth2cm(system.planetRocky.radius), DR_rcb, Tkh_Myr, system.planetRocky.Teq, system.planetRocky.Xiron)
    
-    _, Rplanet = ps.calc_Rplanet(cs.Rearth2cm(system.planetRocky.radius), DR_rcb, Tkh_Myr, system.planetRocky.Teq, system.planetRocky.Xiron)
+    X, _, Rplanet = ps.calc_Rplanet(cs.Rearth2cm(Rcore), DR_rcb, Tkh_Myr, Teq, Xiron)
 
-    eta = calc_efficiency(cs.Mearth2g(system.planetRocky.Mcore), Rplanet)
+    eta = calc_efficiency(cs.Mearth2g(Mcore), Rplanet)
     
     func_to_max = X/ (eta*Rplanet**3)
     
