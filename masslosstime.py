@@ -24,11 +24,16 @@ def calc_efficiency(Mcore, Rplanet):
     
     return eta
 
-def calc_masslosstime_rocky(system,Rcore, Mcore, a, Teq, Xiron, Tkh_Myr):
+def calc_masslosstime_rocky(system, Rcore, Mcore, a, Teq, Xiron, Tkh_Myr):
     '''Returns the maximized envelope width and the maximized scaled mass loss timescale for the rocky planet 
     
     Parameters: 
         system - Planetary system object containing a rocky and enveloped planet and a star
+        Rcore - the radius of the rocky planet in Earth radii
+        Mcore - the mass of the rocky planet in Earth masses
+        a - the semimajor axis of the enveloped planet in cm
+        Teq - enveloped planet equilibrium temp, K
+        Xiron - iron mass fraction
         Tkh_Myr - cooling timescale in Myr'''
     
     #set constraints on envelope width for optimization function
@@ -63,7 +68,10 @@ def max_tmdot_objective(DR_rcb, Rcore, Mcore, Teq, Xiron, Tkh_Myr):
     
     Parameters: 
         DR_rcb - width of the envelope to the rcb in cm
-        system - Planetary system object containing a rocky and enveloped planet and a star
+        Rcore - the radius of the rocky planet in Earth radii
+        Mcore - the mass of the rocky planet in Earth masses
+        Teq - enveloped planet equilibrium temp, K
+        Xiron - iron mass fraction
         Tkh_Myr - cooling timescale in Myr'''
     
    

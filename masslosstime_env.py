@@ -13,6 +13,7 @@ from scipy.optimize import minimize_scalar
 from scipy.optimize import brentq
 import time
 import pdb
+ 
 
 errs=[]
 
@@ -20,7 +21,9 @@ def mass_limits_env(masslosstime_rocky, Rcore, a_env, Teq, planet_age, Tkh_Myr, 
     '''Returns the minimum and maximum mass values for which a mass-loss timescale can be calculated.
     
     Parameters: 
-        system- Planetary system containing a rocky and enveloped planet and a star
+        masslosstime_rocky - the maximum scaled mass loss timescale for the rocky planet
+        Rcore - the radius of the enveloped planet in Earth radii
+        a_env - the semimajor axis of the enveloped planet in cm
         Teq - enveloped planet equilibrium temp, K
         planet_age - age of the system, Myr
         Tkh_Myr - cooling timescale, Myr
@@ -50,11 +53,13 @@ def mass_limits_env(masslosstime_rocky, Rcore, a_env, Teq, planet_age, Tkh_Myr, 
                 break
             
             else: 
-                return -1 
+                print('Cannot find minimum mass for enveloped planet with radius', Rcore)
+                return -1
             
     if solution < 0: 
         #could not solve for a lower mass bound 
         #no mass exists for which the mass loss timescale is less than the maximized timescale for the rocky
+        print('Cannot find minimum mass for enveloped planet with radius', Rcore)
         return -2
     
     #now find the upper bound for the mass value 
@@ -78,6 +83,7 @@ def mass_limits_env(masslosstime_rocky, Rcore, a_env, Teq, planet_age, Tkh_Myr, 
         
     else: 
         #could not find max Mcore for the enveloped planet
+        print('Cannot find maximum mass for enveloped planet with radius', Rcore)
         return -5 
     
     Mcore_max = float(Mcore_max)
@@ -92,14 +98,13 @@ def min_mass_env(Rcore, a_env, Teq, planet_age, Tkh_Myr, Xiron, masslosstime_roc
     mass-loss timescale for the rocky planet
     
     Parameters: 
-        system- Planetary system containing a rocky and enveloped planet and a star
+        Rcore - the radius of the enveloped planet in Earth radii
+        a_env - the semimajor axis of the enveloped planet in cm
         Teq - enveloped planet equilibrium temp, K
         planet_age - age of the system, Myr
         Tkh_Myr - cooling timescale, Myr
         Xiron - iron mass fraction
-        Mcore_min - minimum possible mass returned by mass_limits_env
-        Mcore_max - maximum possible mass returned by mass_limits_env
-        masslosstime_want - the maximized mass-loss timescale for the rocky planet'''
+        masslosstime_want - the maximized scaled mass-loss timescale for the rocky planet'''
         
       
     #now we use these mass limits as bounds for our root solver
@@ -119,7 +124,7 @@ def calc_Rplanet_scaledtime_env(Rplanet_now, Mcore, Teq, planet_age, Tkh_Myr, Xi
     '''Returns the enveloped planet radius and envelope mass fraction at the time we wish to scale to. This is usually set at the cooling timescale of 100 Myr
     
     Parameters: 
-        system- Planetary system object containing a rocky and enveloped planet and a star
+        Rplanet_now - the current radius of the enveloped planet in Earth radii
         Mcore - planet mass value in Earth masses
         Teq - enveloped planet equilibrium temp, K
         planet_age - age of the system, Myr
@@ -149,6 +154,7 @@ def calc_Rplanet_scaledtime_env(Rplanet_now, Mcore, Teq, planet_age, Tkh_Myr, Xi
     X_analytic = ps.calc_X_adiabatic(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron)
     
     if (np.abs(X_analytic - X)/X > 1e-4): 
+        print('Cannot find X for enveloped planet with radius', Rcore)
         return -7 
     
     else: 
@@ -161,6 +167,7 @@ def masslosstime_env(lg_Mcore, Rplanet_now, a_env, Teq, planet_age, Tkh_Myr, Xir
     
     Parameters: 
         lg_Mcore - log planet mass in Earth masses
+        Rplanet_now - the observed radius of the enveloped planet in Earth radii
         a_env = semimajor axis for the enveloped planet in cm
         Teq - enveloped planet equilibrium temp, K
         planet_age - age of the system, Myr

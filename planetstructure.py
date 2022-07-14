@@ -170,7 +170,9 @@ def calc_rho_rcb(Rcore, DR_rcb, X, Tkh_Myr, Teq, Xiron):
         Rcore - planet radius in cm
         DR_rcb- the width of the adiabatic portion of the atmosphere in cm (float) 
         X - envelope mass fraction (float)
-       Tkh_Myr - cooling timescale in Myr'''
+       Tkh_Myr - cooling timescale in Myr
+       Teq - equilibrium temperature of the planet in K
+       Xiron - iron mass fraction'''
     
     
     #height of the rcb
@@ -192,7 +194,9 @@ def calc_Rplanet(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
      Parameters: 
          Rcore - planet radius in cm
          DR_rcb- the width of the adiabatic portion of the atmosphere in cm (float)
-         Tkh_Myr- cooling timescale in Myr'''
+         Tkh_Myr- cooling timescale in Myr
+         Teq - equilibrium temperature of the planet in K
+         Xiron - iron mass fraction'''
      
      #calculate the denisty at the photosphere
      #pressure at the rcb is used as an approx for photospheric pressure 
@@ -202,7 +206,6 @@ def calc_Rplanet(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
      Rrcb = DR_rcb + Rcore
      
      Mcore = Rcore_to_Mcore(cs.cm2Rearth(Rcore), Xiron)
-     
      
      X=calc_X_adiabatic( Rcore, DR_rcb, Tkh_Myr, Teq, Xiron)
      
@@ -314,6 +317,15 @@ def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
       
 
 def Rplanet_solver_eq(lg_DR_rcb, Rp, Mcore, Teq, planet_age, Xiron): 
+    '''Returns the difference between the current radius of the enveloped planet and the calculated radius for a given mass estimate
+    
+    Parameters: 
+        lg_DR_rcb - log of the width of the rcb in cm
+        Rp - current planet radius in Earth radii
+        Mcore - planet mass in Earth masses
+        planet_age - current age of the system in Myr
+        Teq - equilibrium temp in K
+        Xiron - iron mass fracttion'''
         
   
     #evaluate the envelope mass fraction and atmosphere structure for this mass/radius guess

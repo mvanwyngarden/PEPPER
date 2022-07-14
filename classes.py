@@ -11,7 +11,7 @@ import planetstructure as ps
 import masslosstime as ml
 import masslosstime_env as ml_env
 import pdb
-
+from tqdm import tqdm
 #create objects to hold planet data
 
 
@@ -94,11 +94,12 @@ class PlanetarySystem():
     
         self.star.Teff_samp = np.random.normal(self.star.Teff, self.star.Teff_err, self.N)
          
-        
+       
     def calc_min_mass_env(self):
         
         self.planetEnv.minMcore_samps = np.zeros(self.N)
-        for i in range (self.N):
+        
+        for i in tqdm(range(self.N)):
             
             
             self.planetRocky.a = self.calcsemimajor(self.star.mass_samp[i], self.planetRocky.period_samp[i])
