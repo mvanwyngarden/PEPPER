@@ -124,15 +124,15 @@ class PlanetarySystem():
             
             if (PE):
             
-                masslosstime_rocky = ml.calc_masslosstime_rocky(sys, sys.planetRocky.radius, sys.planetRocky.Mcore, sys.planetRocky.a, sys.planetRocky.Teq, sys.planetRocky.Xiron, sys.Tkh_Myr)
+                masslosstime_rocky = ml.calc_masslosstime_rocky(sys, sys.planetRocky.radius, sys.planetRocky.Mcore, sys.planetRocky.a, sys.planetRocky.Teq, sys.planetRocky.Xiron, sys.Tkh_PE)
 
-                min_mass = ml_env.min_mass_env(sys.planetEnv.radius, sys.planetEnv.a, sys.planetEnv.Teq, sys.star.age, sys.Tkh_Myr, sys.planetEnv.Xiron, masslosstime_rocky)
+                min_mass = ml_env.min_mass_env(sys.planetEnv.radius, sys.planetEnv.a, sys.planetEnv.Teq, sys.star.age, sys.Tkh_PE, sys.planetEnv.Xiron, masslosstime_rocky)
            
             else: 
                 
-                masslosstime_rocky = cp_ml.calc_max_masslosstime_rocky(sys, sys.planetRocky.radius, sys.planetRocky.Mcore, sys.planetRocky.Teq, sys.planetRocky.Xiron, sys.Tkh_Myr)[0]
+                masslosstime_rocky = cp_ml.calc_max_masslosstime_rocky(sys, sys.planetRocky.radius, sys.planetRocky.Mcore, sys.planetRocky.Teq, sys.planetRocky.Xiron, sys.Tkh_CPML)[0]
                 
-                min_mass = ml_env.min_mass_env(sys.planetEnv.radius, sys.planetEnv.a, sys.planetEnv.Teq, sys.star.age, sys.Tkh_Myr, sys.planetEnv.Xiron, masslosstime_rocky, PE=False)
+                min_mass = ml_env.min_mass_env(sys.planetEnv.radius, sys.planetEnv.a, sys.planetEnv.Teq, sys.star.age, sys.Tkh_CPML, sys.planetEnv.Xiron, masslosstime_rocky, PE=False)
             
             self.planetEnv.minMcore_samps[i]= min_mass
     
