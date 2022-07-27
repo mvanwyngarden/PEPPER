@@ -10,8 +10,10 @@ import constants as cs
 import planetstructure as ps 
 import masslosstime as ml
 import masslosstime_env as ml_env
+import cpml_masslosstime as cp_ml
 import pdb
 from tqdm import tqdm
+
 
 
 
@@ -41,6 +43,8 @@ class Planet():
         self.Xiron = Xiron
         self.albedo=albedo
         self.calcMcore()
+        self.PE = self.PE()
+        self.CPML = self.CPML()
         
     def calcsemimajor(self,star):
         self.a = ((( cs.G *cs.Msun2g(star.mass)*(self.period*cs.d2s)**2)/(4*(np.pi)**2))**(1/3))
@@ -52,6 +56,11 @@ class Planet():
     def calcMcore(self):
         if self.isrocky: 
             self.Mcore = ps.Rcore_to_Mcore(self.radius, self.Xiron)
+            
+    class PE:
+        pass
+    class CPML: 
+        pass
            
     
     
@@ -59,7 +68,7 @@ class Planet():
 class PlanetarySystem(): 
     
     
-    def __init__(self, starparams, planetRockyparams, planetEnvparams, Tkh_Myr=100, Mstar_err=0, Star_age_err=0, Rstar_err=0, Teff_err=0, Rrocky_err=0, Procky_err=0, Xironrocky=1/3, albedo_rocky=0, Renv_err=0, Penv_err=0, Xironenv=1/3, albedo_env=0 ):
+    def __init__(self, starparams, planetRockyparams, planetEnvparams, Tkh_PE=100, Tkh_CPML=1000, Mstar_err=0, Star_age_err=0, Rstar_err=0, Teff_err=0, Rrocky_err=0, Procky_err=0, Xironrocky=1/3, albedo_rocky=0, Renv_err=0, Penv_err=0, Xironenv=1/3, albedo_env=0 ):
         
         stardict={'mass_err':Mstar_err, 'age_err':Star_age_err, 'radius_err':Rstar_err, 'Teff_err':Teff_err}
         self.star=Star(*starparams, **stardict)
@@ -74,7 +83,8 @@ class PlanetarySystem():
         self.planetEnv.calcsemimajor(self.star)
         self.planetEnv.calcplanettemp(self.star)
         
-        self.Tkh_Myr = Tkh_Myr
+        self.Tkh_PE = Tkh_PE
+        self.Tkh_CPML=Tkh_CPML
      
 
        
@@ -98,7 +108,7 @@ class PlanetarySystem():
         self.star.Teff_samp = np.random.normal(self.star.Teff, self.star.Teff_err, self.N)
          
        
-    def calc_min_mass_env(self):
+    def calc_min_mass_env(self, PE=True):
         '''Calculates an array of minimum mass estimates for the enveloped planet through Monte Carlo sampling'''
         
         self.planetEnv.minMcore_samps = np.zeros(self.N)
@@ -110,12 +120,19 @@ class PlanetarySystem():
             planetRockyparams=(self.planetRocky.Rcore_samp[i], self.planetRocky.period_samp[i])
             planetEnvparams=(self.planetEnv.Rcore_samp[i], self.planetEnv.period_samp[i])
             
-            sys = PlanetarySystem(starparams, planetRockyparams, planetEnvparams, self.Tkh_Myr)
+            sys = PlanetarySystem(starparams, planetRockyparams, planetEnvparams, self.Tkh_PE, self.Tkh_CPML)
             
-            masslosstime_rocky = ml.calc_masslosstime_rocky(sys, sys.planetRocky.radius, sys.planetRocky.Mcore, sys.planetRocky.a, sys.planetRocky.Teq, sys.planetRocky.Xiron, sys.Tkh_Myr)
+            if (PE):
+            
+                masslosstime_rocky = ml.calc_masslosstime_rocky(sys, sys.planetRocky.radius, sys.planetRocky.Mcore, sys.planetRocky.a, sys.planetRocky.Teq, sys.planetRocky.Xiron, sys.Tkh_Myr)
+
+                min_mass = ml_env.min_mass_env(sys.planetEnv.radius, sys.planetEnv.a, sys.planetEnv.Teq, sys.star.age, sys.Tkh_Myr, sys.planetEnv.Xiron, masslosstime_rocky)
            
-            min_mass = ml_env.min_mass_env(sys.planetEnv.radius, sys.planetEnv.a, sys.planetEnv.Teq, sys.star.age, sys.Tkh_Myr, sys.planetEnv.Xiron, masslosstime_rocky)
-           
+            else: 
+                
+                masslosstime_rocky = cp_ml.calc_max_masslosstime_rocky(sys, sys.planetRocky.radius, sys.planetRocky.Mcore, sys.planetRocky.Teq, sys.planetRocky.Xiron, sys.Tkh_Myr)[0]
+                
+                min_mass = ml_env.min_mass_env(sys.planetEnv.radius, sys.planetEnv.a, sys.planetEnv.Teq, sys.star.age, sys.Tkh_Myr, sys.planetEnv.Xiron, masslosstime_rocky, PE=False)
             
             self.planetEnv.minMcore_samps[i]= min_mass
     
