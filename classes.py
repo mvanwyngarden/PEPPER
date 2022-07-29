@@ -11,6 +11,7 @@ import planetstructure as ps
 import masslosstime as ml
 import masslosstime_env as ml_env
 import cpml_masslosstime as cp_ml
+import gas_poor_form as gpf
 import pdb
 from tqdm import tqdm
 
@@ -108,7 +109,7 @@ class PlanetarySystem():
         self.star.Teff_samp = np.random.normal(self.star.Teff, self.star.Teff_err, self.N)
          
        
-    def calc_min_mass_env(self, PE=True):
+    def calc_min_mass_env(self, PE=True, CPML=False, GPF=False):
         '''Calculates an array of minimum mass estimates for the enveloped planet through Monte Carlo sampling'''
         
         self.planetEnv.minMcore_samps = np.zeros(self.N)
@@ -128,12 +129,18 @@ class PlanetarySystem():
 
                 min_mass = ml_env.min_mass_env(sys.planetEnv.radius, sys.planetEnv.a, sys.planetEnv.Teq, sys.star.age, sys.Tkh_PE, sys.planetEnv.Xiron, masslosstime_rocky)
            
-            else: 
+            elif (CPML): 
                 
                 masslosstime_rocky = cp_ml.calc_max_masslosstime_rocky(sys, sys.planetRocky.radius, sys.planetRocky.Mcore, sys.planetRocky.Teq, sys.planetRocky.Xiron, sys.Tkh_CPML)[0]
                 
                 min_mass = ml_env.min_mass_env(sys.planetEnv.radius, sys.planetEnv.a, sys.planetEnv.Teq, sys.star.age, sys.Tkh_CPML, sys.planetEnv.Xiron, masslosstime_rocky, PE=False)
             
+            else: 
+                
+                X_rocky = gpf.calc_X_iso(sys.planetRocky.radius, sys.star.radius, sys.star.Teff, sys.planetRocky.Mcore, sys.planetRocky.a, sys.star.mass)
+               
+                min_mass = gpf.calc_min_mass_env(sys, sys.planetEnv.radius, sys.planetEnv.Xiron, sys.star.radius, sys.star.Teff, sys.planetEnv.a, sys.star.mass, X_rocky)
+                
             self.planetEnv.minMcore_samps[i]= min_mass
     
             
