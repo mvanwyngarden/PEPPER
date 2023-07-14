@@ -15,7 +15,7 @@ import pdb
 Model_data = {}
 
 
-filenames=glob.glob('MIST_models\*M.track.eep')
+filenames=glob.glob('MIST_models/*M.track.eep')
 M_star_all=np.zeros(len(filenames))
 for i in range(len(filenames)): 
     M_star_all[i]=int(filenames[i].split('M.')[0].split('\\')[1])*1e-4
@@ -36,28 +36,45 @@ for i in range(len(filenames)):
 
 def luminosity(Mstar, age):
     
-    mass_upper_pos = bisect_left(M_star_all, Mstar)
-    mass_lower_pos = mass_upper_pos-1
     
-    diff1= abs(Mstar-M_star_all[mass_lower_pos])
-    diff2= abs(Mstar-M_star_all[mass_upper_pos])
-    
-    if diff2==0: 
-        coeff1 = 1
-        coeff2 = 0
-    else: 
-        coeff1 = diff1/(M_star_all[mass_upper_pos]-M_star_all[mass_lower_pos])
-        coeff2 = diff2/(M_star_all[mass_upper_pos]-M_star_all[mass_lower_pos])
-    
-    Mstarmin = M_star_all[mass_lower_pos]
-    Mstarmax = M_star_all[mass_upper_pos]
+    if (bisect_left(M_star_all, Mstar) > 21): 
+        mass_upper_pos=21
+        mass_lower_pos = mass_upper_pos-1
+        
+        Mstarmin = M_star_all[mass_lower_pos]
+        Mstarmax = M_star_all[mass_upper_pos]
 
-    L_min, L_max = interpolation(Mstarmin, Mstarmax, Mstar,
+        L_min, L_max = interpolation(Mstarmin, Mstarmax, Mstar,
+                            Model_data[Mstarmin]['Age'], Model_data[Mstarmax]['Age'], age,
+                            Model_data[Mstarmin]['L_bol'], Model_data[Mstarmax]['L_bol'])
+        luminosity=10**L_max
+        
+    else: 
+        mass_upper_pos = bisect_left(M_star_all, Mstar)
+        
+        mass_lower_pos = mass_upper_pos-1
+        
+    
+        diff1= abs(Mstar-M_star_all[mass_lower_pos])
+        diff2= abs(Mstar-M_star_all[mass_upper_pos])
+    
+        if diff2==0: 
+            coeff1 = 1
+            coeff2 = 0
+        else: 
+            coeff1 = diff1/(M_star_all[mass_upper_pos]-M_star_all[mass_lower_pos])
+            coeff2 = diff2/(M_star_all[mass_upper_pos]-M_star_all[mass_lower_pos])
+    
+        Mstarmin = M_star_all[mass_lower_pos]
+        Mstarmax = M_star_all[mass_upper_pos]
+
+        L_min, L_max = interpolation(Mstarmin, Mstarmax, Mstar,
                         Model_data[Mstarmin]['Age'], Model_data[Mstarmax]['Age'], age,
                         Model_data[Mstarmin]['L_bol'], Model_data[Mstarmax]['L_bol'])
     
-    interp_l_bol= L_min*coeff2 + L_max*coeff1
-    luminosity=10**interp_l_bol
+        interp_l_bol= L_min*coeff2 + L_max*coeff1
+        luminosity=10**interp_l_bol
+        
     return luminosity
 
 
