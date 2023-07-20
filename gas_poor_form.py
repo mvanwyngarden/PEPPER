@@ -5,6 +5,7 @@ Created on Thu Jul 28 10:51:59 2022
 @author: madir
 """
 import constants as cs
+import pre_MS_luminosity as lumin
 import numpy as np
 import scipy as sc 
 import planetstructure as ps
@@ -53,7 +54,7 @@ def calc_Rout(Mcore, a, star_mass, Tdisk):
     
     return R_out
 
-def calc_disk_temp(star_rad, Teff, a):
+def calc_disk_temp(star_mass, a, age):
     '''Returns the local disk temperature in K
     
     Parameters: 
@@ -61,13 +62,13 @@ def calc_disk_temp(star_rad, Teff, a):
         Teff - star's effective temperature in K
         a - semimajor axis in cm'''
     
-    L = 4*np.pi*cs.Rsun2cm(star_rad)**2*cs.sigma*Teff**4
+    L = lumin.luminosity(star_mass, age)*3.839e33
     
     Tdisk = 550* (a/cs.Au2cm)**(-2/5)* (L/5.6e33)**(1/5)
     
     return Tdisk
     
-def iso_atmos_mass_limit_eq(rho_disk, star_rad, Teff, Mcore, a, Rout, r):
+def iso_atmos_mass_limit_eq(rho_disk, star_rad, Teff, Mcore, a, Rout, r, star_mass, age):
     '''The equation used to calculate the max envelope mass a planet can accrete given by its isothermal limit
     
     Parameters: 
@@ -77,12 +78,13 @@ def iso_atmos_mass_limit_eq(rho_disk, star_rad, Teff, Mcore, a, Rout, r):
         Mcore - planet's core mass in Earth masses
         a - semimajor axis in cm
         Rout - planet radius in cm
-        r - unit of integration, set to the integral bounds, either Rout or Rcore in cm'''
+        r - unit of integration, set to the integral bounds, either Rout or Rcore in cm
+        star_mass - mass of the system's host star in solar masses
+        age- age of the system in yrs'''
     
     Mcore=cs.Mearth2g(Mcore)
     
-    Tdisk = calc_disk_temp(star_rad, Teff, a)
-    
+    Tdisk = calc_disk_temp(star_mass, a, age)
     c_atmos_sq = cs.kb*Tdisk/ cs.mu
     
     expi=sc.special.expi(cs.G*Mcore/(c_atmos_sq*r))
@@ -96,7 +98,7 @@ def iso_atmos_mass_limit_eq(rho_disk, star_rad, Teff, Mcore, a, Rout, r):
     
     return M_iso_eq 
 
-def calc_X_iso(Rcore, star_rad, Teff, Mcore, a, star_mass): 
+def calc_X_iso(Rcore, star_rad, Teff, Mcore, a, star_mass, age): 
     '''Returns the maximum envelope mass fraction
     
     Parameters: 
@@ -107,13 +109,13 @@ def calc_X_iso(Rcore, star_rad, Teff, Mcore, a, star_mass):
         a - semimajor axis in cm
         star_mass - star mass in units of solar masses
         '''
-    Tdisk = calc_disk_temp(star_rad, Teff, a)
+    Tdisk = calc_disk_temp(star_mass, a, age)
     R_out = calc_Rout(Mcore, a, star_mass, Tdisk)
-    M_iso = iso_atmos_mass_limit_eq(1, star_rad, Teff, Mcore, a, R_out, R_out)-iso_atmos_mass_limit_eq(1, star_rad, Teff, Mcore, a, R_out, cs.Rearth2cm(Rcore))
+    M_iso = iso_atmos_mass_limit_eq(1, star_rad, Teff, Mcore, a, R_out, R_out,star_mass, age)-iso_atmos_mass_limit_eq(1, star_rad, Teff, Mcore, a, R_out, cs.Rearth2cm(Rcore), star_mass, age)
     
     return M_iso/cs.Mearth2g(Mcore)
 
-def calc_min_mass_env(system, Rcore_env, Xiron, star_rad, Teff, a_env, star_mass, X_rocky):
+def calc_min_mass_env(system, Rcore_env, Xiron, star_rad, Teff, a_env, star_mass, X_rocky, age):
     '''Returns the minimum core mass of the enveloped planet to be consistent with gas poor formation in Earth masses
     
     Parameters: 
@@ -136,12 +138,12 @@ def calc_min_mass_env(system, Rcore_env, Xiron, star_rad, Teff, a_env, star_mass
     
     Mcore_min = 0.1
     #pdb.set_trace()
-    lg_min_mass_env=brentq(X_compare, np.log10(Mcore_min), np.log10(Mcore_max), args=(system, Rcore_env, star_rad, Teff, a_env, star_mass, X_rocky))
+    lg_min_mass_env=brentq(X_compare, np.log10(Mcore_min), np.log10(Mcore_max), args=(system, Rcore_env, star_rad, Teff, a_env, star_mass, X_rocky, age))
     min_mass_env= 10**lg_min_mass_env
     
     return min_mass_env
     
-def X_compare(lg_Mcore, system, Rcore_env, star_rad, Teff, a_env, star_mass, X_rocky):
+def X_compare(lg_Mcore, system, Rcore_env, star_rad, Teff, a_env, star_mass, X_rocky, age):
     '''Returns the difference between the envelope mass fraction of the rocky planet and the envelope mass fraction of the enveloped planet
     
     Parameters: 
@@ -156,7 +158,7 @@ def X_compare(lg_Mcore, system, Rcore_env, star_rad, Teff, a_env, star_mass, X_r
     
     Mcore = 10**lg_Mcore
     
-    X_env= calc_X_iso(Rcore_env, star_rad, Teff, Mcore, a_env, star_mass)
+    X_env= calc_X_iso(Rcore_env, star_rad, Teff, Mcore, a_env, star_mass, age)
     
     return X_rocky-X_env
     
