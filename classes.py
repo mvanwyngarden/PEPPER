@@ -65,7 +65,7 @@ class Planet():
 class PlanetarySystem(): 
     
     
-    def __init__(self, starparams, planetRockyparams, planetEnvparams, Tkh_PE=100, Tkh_CPML=1000, GPF_tscale=10e6, Mstar_err=0, Star_age_err=0, Rstar_err=0, Teff_err=0, Rrocky_err=0, Procky_err=0, Xironrocky=1/3, albedo_rocky=0, Renv_err=0, Penv_err=0, Xironenv=1/3, albedo_env=0 ):
+    def __init__(self, starparams, planetRockyparams, planetEnvparams, Tkh_PE=100, Tkh_CPML=1000, GPF_tscale=1e6, Mstar_err=0, Star_age_err=0, Rstar_err=0, Teff_err=0, Rrocky_err=0, Procky_err=0, Xironrocky=1/3, albedo_rocky=0, Renv_err=0, Penv_err=0, Xironenv=1/3, albedo_env=0 ):
         
         stardict={'mass_err':Mstar_err, 'age_err':Star_age_err, 'radius_err':Rstar_err, 'Teff_err':Teff_err}
         self.star=Star(*starparams, **stardict)
@@ -150,10 +150,10 @@ class PlanetarySystem():
                 
             else: 
                 
-                X_rocky = gpf.calc_X_iso(sys.planetRocky.radius, sys.star.radius, sys.star.Teff, sys.planetRocky.Mcore, sys.planetRocky.a, sys.star.mass, sys.GPF_tscale)
+                X_rocky = gpf.calc_X_iso( sys.planetRocky.Mcore, sys.planetRocky.a, sys.star.mass, sys.GPF_tscale, sys.planetRocky.Xiron, sys.planetRocky.period)
                 try: 
                     min_mass=0
-                    min_mass = gpf.calc_min_mass_env(sys, sys.planetEnv.radius, sys.planetEnv.Xiron, sys.star.radius, sys.star.Teff, sys.planetEnv.a, sys.star.mass, X_rocky, sys.GPF_tscale)
+                    min_mass = gpf.calc_min_mass_env(sys, sys.planetEnv.radius, sys.planetEnv.Xiron,  sys.planetEnv.a, sys.star.mass, X_rocky, sys.GPF_tscale, sys.planetEnv.period)
                 except: 
                     pass 
             
