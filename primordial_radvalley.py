@@ -54,21 +54,21 @@ def calc_Rout(Mcore, a, star_mass, Tdisk):
     
     return R_out
 
-def calc_disk_temp(star_mass, a, age):
+def calc_disk_temp(star_mass, a, age_yrs):
     '''Returns the local disk temperature in K
     
     Parameters: 
         star_mass - Star mass in units of solar mass
-        age- age of the system in yrs 
+        age_yrs age of the system in yrs 
         a - semimajor axis in cm'''
     
-    L = lumin.luminosity(star_mass, age)*3.839e33
+    L = lumin.luminosity(star_mass, age_yrs)*3.839e33
     
     Tdisk = 550* (a/cs.Au2cm)**(-2/5)* (L/5.6e33)**(1/5)
     
     return Tdisk
     
-def iso_atmos_mass_limit_eq( Mcore, a, Rout, r, star_mass, age, per):
+def iso_atmos_mass_limit_eq( Mcore, a, Rout, r, star_mass, age_yrs, per):
     '''The equation used to calculate the max envelope mass a planet can accrete given by its isothermal limit
     
     Parameters: 
@@ -78,11 +78,11 @@ def iso_atmos_mass_limit_eq( Mcore, a, Rout, r, star_mass, age, per):
         Rout - planet radius in cm
         r - unit of integration, set to the integral bounds, either Rout or Rcore in cm
         star_mass - mass of the system's host star in solar masses
-        age- age of the system in yrs'''
+        age_yrs- age of the system in yrs'''
     
     Mcore=cs.Mearth2g(Mcore)
     
-    Tdisk = calc_disk_temp(star_mass, a, age)
+    Tdisk = calc_disk_temp(star_mass, a, age_yrs)
     c_atmos_sq = cs.kb*Tdisk/ cs.mu
     
     scaleH=np.sqrt(c_atmos_sq)*(per*cs.d2s/(2*np.pi))
@@ -90,7 +90,7 @@ def iso_atmos_mass_limit_eq( Mcore, a, Rout, r, star_mass, age, per):
     tvisc=.45e6
     #gas surface density from Lee 2022
     f=1e-2
-    gas_surfdensity=10**4*f*(a/(1*cs.Au2cm))**(-11/10)*np.exp(-age/tvisc)
+    gas_surfdensity=10**4*f*(a/(1*cs.Au2cm))**(-11/10)*np.exp(-age_yrs/tvisc)
     
     k=cs.G*Mcore/c_atmos_sq
     expi=sc.special.expi(k/r)
@@ -107,13 +107,16 @@ def calc_X_iso(Mcore, a, star_mass, age, Xiron, per):
         Mcore - planet's core mass in Earth masses
         a - semimajor axis in cm
         star_mass - star mass in units of solar masses
+        age - age of the system in Myr
         '''
-    Tdisk = calc_disk_temp(star_mass, a, age)
+    #change age to yrs
+    age_yrs=age*1e6
+    Tdisk = calc_disk_temp(star_mass, a, age_yrs)
     R_out = calc_Rout(Mcore, a, star_mass, Tdisk)
     Rcore=ps.Mcore_to_Rcore(Mcore, Xiron)
     
-    M_iso_Rcore=iso_atmos_mass_limit_eq( Mcore, a, R_out, cs.Rearth2cm(Rcore), star_mass, age, per)
-    M_iso_Rout=iso_atmos_mass_limit_eq( Mcore, a, R_out, R_out,star_mass, age, per)
+    M_iso_Rcore=iso_atmos_mass_limit_eq( Mcore, a, R_out, cs.Rearth2cm(Rcore), star_mass, age_yrs, per)
+    M_iso_Rout=iso_atmos_mass_limit_eq( Mcore, a, R_out, R_out,star_mass, age_yrs, per)
    
     M_iso = M_iso_Rout-M_iso_Rcore
     
@@ -129,7 +132,8 @@ def calc_min_mass_env(system, Rcore_env, Xiron, a_env, star_mass, X_rocky, age, 
         star_rad - star radius in units of solar radii
         Teff - star's effective temperature in K
         a_env - semimajor axis of the enveloped planet in cm
-        star_mass - star mass in units of solar masses'''
+        star_mass - star mass in units of solar masses
+        age - age of the system in Myrs'''
     
     if (Rcore_env>np.max(ps.table_interpolation(Xiron)[0])):
         Rmax = np.max(ps.table_interpolation(Xiron)[0])
@@ -141,7 +145,8 @@ def calc_min_mass_env(system, Rcore_env, Xiron, a_env, star_mass, X_rocky, age, 
     Mcore_max = ps.Rcore_to_Mcore(Rmax, Xiron)
     
     Mcore_min = 0.1
-    #pdb.set_trace()
+    
+    
     lg_min_mass_env=brentq(X_compare, np.log10(Mcore_min), np.log10(Mcore_max), args=(system, a_env, star_mass, X_rocky, age, Xiron, per))
     min_mass_env= 10**lg_min_mass_env
     
@@ -158,7 +163,8 @@ def X_compare(lg_Mcore, system, a_env, star_mass, X_rocky, age, Xiron, per):
         Teff - star's effective temperature in K
         a_env - semimajor axis of the enveloped planet in cm
         star_mass - star mass in units of solar masses
-        X_rocky - envelope mass fraction of rocky planet'''
+        X_rocky - envelope mass fraction of rocky planet
+        age- age of the system in Myrs'''
     
     Mcore = 10**lg_Mcore
     
