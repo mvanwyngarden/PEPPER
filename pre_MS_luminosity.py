@@ -35,6 +35,11 @@ for i in range(len(filenames)):
 
 
 def luminosity(Mstar, age):
+    '''Returns the luminosity of a star of a given mass and age 
+    
+    Inputs: 
+        Mstar - star mass in solar masses 
+        age- age of the system in yrs'''
     
     
     if (bisect_left(M_star_all, Mstar) > 21): 

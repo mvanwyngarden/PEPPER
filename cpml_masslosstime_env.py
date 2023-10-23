@@ -8,12 +8,11 @@ Created on Mon Jul 25 11:20:03 2022
 import numpy as np
 import constants as cs
 import planetstructure as ps
-import masslosstime as ms
 import cpml_masslosstime as cml
 from scipy.optimize import minimize_scalar
 import pdb
 
-errs=[]
+
 def mass_limits_envCPML(masslosstimeCPML_rocky, Rcore, a_env, Teq, planet_age, Tkh_Myr, Xiron): 
     '''Returns the minimum and maximum mass values for which a mass-loss timescale can be calculated.
     
@@ -56,14 +55,13 @@ def mass_limits_envCPML(masslosstimeCPML_rocky, Rcore, a_env, Teq, planet_age, T
             
             else: 
                 print('1-Cannot find minimum mass for enveloped planet with radius', Rcore)
-                errs.append(Rcore)
+                
                 return -1
             
     if solution < 0: 
         #could not solve for a lower mass bound 
         #no mass exists for which the mass loss timescale is less than the maximized timescale for the rocky
         print('2-Cannot find minimum mass for enveloped planet with radius', Rcore)
-        errs.append(Rcore)
         return -2
     
     #now find the upper bound for the mass value 
@@ -82,14 +80,16 @@ def mass_limits_envCPML(masslosstimeCPML_rocky, Rcore, a_env, Teq, planet_age, T
         
         if (masslosstime_env_max < masslosstimeCPML_rocky): 
             print('There is no solution for planet radius', Rcore)
-            errs.append(Rcore)
+            
+            return -3
             
         
     else: 
         #could not find max Mcore for the enveloped planet
         print('Cannot find maximum mass for enveloped planet with radius', Rcore)
-        errs.append(Rcore)
-        return -5 
+       
+        return -4
+        
     
     Mcore_max = float(Mcore_max)
     Mcore_min = float(Mcore_min)
@@ -114,15 +114,14 @@ def masslosstime_envCPML(lg_Mcore, Rplanet_now, a_env, Teq, planet_age, Tkh_Myr,
      
     Rplanet_tscale, X, DR_rcb = calc_Rplanet_scaledtime_env(Rplanet_now, Mcore, Teq, planet_age, Tkh_Myr, Xiron)
     
-    eta = ms.calc_efficiency(cs.Mearth2g(Mcore), Rplanet_tscale)
+    eta = cml.calc_eta()
     
     Rcore=ps.Mcore_to_Rcore(Mcore, Xiron)
     
-    #should the Rcore going into this be the real Rcore or the Rcore based off the current mass guess 
     rho_rcb = ps.calc_rho_rcb(cs.Rearth2cm(Rcore), DR_rcb, X, Tkh_Myr, Teq, Xiron)
      
     masslosstime_env = cml.escape_lim_masslosstime_eq(Mcore, Teq, rho_rcb, Rplanet_tscale, X, eta)
-   
+    
     return masslosstime_env - masslosstime_want
 
 def masslosstime_env_minimize(Mcore, Rplanet_now, a_env, Teq, planet_age, Tkh_Myr, Xiron): 

@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 
+import time
+
 import numpy as np
 from scipy import interpolate
 from scipy.integrate import quad
 from bisect import bisect_left
 import constants as cs
 from scipy.optimize import fsolve
-import time
-import pdb
+
 
 def weights(Xiron):
     '''Returns the coefficients needed to find the weighted average of two mass/radius columns
        
-       Parameters: Xiron'''
+           Parameters: 
+               Xiron - iron mass fraction'''
     
     Xirons = np.arange(0, 1.025, 0.025)
     #returns the position within the list at which the given Xiron value would be inserted
@@ -32,14 +34,7 @@ def weights(Xiron):
     return pos, coeff1, coeff2
 
     
-def Rcore_to_Mcore(Rcore, Xiron):
-    '''Returns the mass of a planet in Earth masses. 
-    Mass-radius relationships derived from Li Zeng's models of Fe-MgSiO3 planets
-    
-    Parameters: 
-        Rcore - planet core radius in Earth radii
-        Xiron - iron mass fraction '''
-    
+def table_interpolation(Xiron):
     pos, coeff1, coeff2 = weights(Xiron)
     
     f1 = interpolate.interp1d(cs.masstable[:,pos-1], cs.radtable[:,pos-1], bounds_error=False)
@@ -53,9 +48,23 @@ def Rcore_to_Mcore(Rcore, Xiron):
     else: 
         radii = coeff1*radtable1 + coeff2*radtable2
         
+    return radii, massarr
+    
+def Rcore_to_Mcore(Rcore, Xiron):
+    '''Returns the mass of a planet in Earth masses. 
+    Mass-radius relationships derived from Li Zeng's models of Fe-MgSiO3 planets
+    
+    Parameters: 
+        Rcore - planet core radius in Earth radii
+        Xiron - iron mass fraction '''
+    
+    radii, massarr = table_interpolation(Xiron)
+    
+        
     #use linear interpolation to find the mass value for a given radius value as a function of Xiron
     massfunc = interpolate.interp1d(radii, massarr, bounds_error=False)
     mass = massfunc(Rcore)
+  
     return mass
     
 
@@ -164,12 +173,12 @@ def calc_X_adiabatic(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
 
 
 def calc_rho_rcb(Rcore, DR_rcb, X, Tkh_Myr, Teq, Xiron): 
-    '''Calculate the density at the rcb
+    '''Calculate the density at the radiative-convective boundary
     
     Parameters: 
         Rcore - planet radius in cm
-        DR_rcb- the width of the adiabatic portion of the atmosphere in cm (float) 
-        X - envelope mass fraction (float)
+        DR_rcb- the width of the adiabatic portion of the atmosphere in cm 
+        X - envelope mass fraction
        Tkh_Myr - cooling timescale in Myr
        Teq - equilibrium temperature of the planet in K
        Xiron - iron mass fraction'''
@@ -193,7 +202,7 @@ def calc_Rplanet(Rcore, DR_rcb, Tkh_Myr, Teq, Xiron):
      '''Returns the radius of the planet over the radius to the rcb and returns the radius of the planet 
      Parameters: 
          Rcore - planet radius in cm
-         DR_rcb- the width of the adiabatic portion of the atmosphere in cm (float)
+         DR_rcb- the width of the adiabatic portion of the atmosphere in cm
          Tkh_Myr- cooling timescale in Myr
          Teq - equilibrium temperature of the planet in K
          Xiron - iron mass fraction'''
@@ -269,7 +278,7 @@ def calc_photo_pressure( R, Mcore, Teq):
     
     return pressure_phot, rho_phot_calc, H
    
-    
+  
 def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
     '''Returns the envelope mass fraction and planet radius at the current age of the system
     
@@ -282,10 +291,11 @@ def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
         
     #this will only get called when evaluating the gaseous planet 
     #we will then make sure that the Rplanet returned converges with the current Rp input by the user 
-    
+     
     Rcore = Mcore_to_Rcore(Mcore, Xiron)
     
     if (Rp < Rcore):
+        print('failed to find planet radius at current age of the system')
         return -1 
     
     Rcore = cs.Rearth2cm(Rcore)
@@ -315,7 +325,6 @@ def Rplanet_solver(Rp, Mcore, planet_age, Teq, Xiron):
         X, Rp_Rcore, Rplanet = calc_X_isothermal( cs.Rearth2cm(Rp), Mcore, Teq, Xiron)
         return X, Rp_Rcore, Rplanet
       
-
 def Rplanet_solver_eq(lg_DR_rcb, Rp, Mcore, Teq, planet_age, Xiron): 
     '''Returns the difference between the current radius of the enveloped planet and the calculated radius for a given mass estimate
     

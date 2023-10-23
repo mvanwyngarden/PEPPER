@@ -7,13 +7,11 @@ import masslosstime as ml
 import masslosstime_env as ml_env
 import cpml_masslosstime as cp_ml
 import primordial_radvalley as prv
-import pdb
 import math
 from tqdm import tqdm
 
 import warnings
 warnings.filterwarnings("ignore")
-
 
 
 class Star():
@@ -82,12 +80,13 @@ class PlanetarySystem():
         self.planetEnv.calcplanettemp(self.star)
         
         if Tkh_PE is None and self.star.mass >= 0.8: 
-            self.Tkh_PE=100
+            Tkh_PE=100
         elif Tkh_PE is None and self.star.mass <=0.3: 
-            self.Tkh_PE=1000
+            Tkh_PE=1000
         elif Tkh_PE is None and 0.3<self.star.mass<0.8 : 
-            self.Tkh_PE=300
+            Tkh_PE=300
         
+        self.Tkh_PE=Tkh_PE
         self.Tkh_CPML=Tkh_CPML
         self.PRV_tscale= PRV_tscale
         
@@ -142,9 +141,11 @@ class PlanetarySystem():
             if (PE):
                 
                 try:
-                    masslosstime_rocky = ml.calc_masslosstime_rocky(sys, sys.planetRocky.radius, sys.planetRocky.Mcore, sys.planetRocky.a, sys.planetRocky.Teq, sys.planetRocky.Xiron, sys.Tkh_PE)
-                    min_mass=0
+                    
+                    masslosstime_rocky = ml.calc_masslosstime_rocky(sys, sys.planetRocky.radius, sys.planetRocky.Mcore, sys.planetRocky.a, sys.planetRocky.Teq, sys.planetRocky.Xiron, sys.Tkh_PE) 
+                    min_mass=20
                     min_mass = ml_env.min_mass_env(sys.planetEnv.radius, sys.planetEnv.a, sys.planetEnv.Teq, sys.star.age, sys.Tkh_PE, sys.planetEnv.Xiron, masslosstime_rocky)
+                    
                 except: 
                     pass
                 
@@ -152,7 +153,7 @@ class PlanetarySystem():
                 
                 try:
                     masslosstime_rocky = cp_ml.calc_max_masslosstime_rocky(sys, sys.planetRocky.radius, sys.planetRocky.Mcore, sys.planetRocky.Teq, sys.planetRocky.Xiron, sys.Tkh_CPML)
-                    min_mass=0
+                    min_mass=20
                     min_mass = ml_env.min_mass_env(sys.planetEnv.radius, sys.planetEnv.a, sys.planetEnv.Teq, sys.star.age, sys.Tkh_CPML, sys.planetEnv.Xiron, masslosstime_rocky, PE=False)
                 except: 
                     pass
@@ -160,7 +161,7 @@ class PlanetarySystem():
             else: 
                 try:
                     X_rocky = prv.calc_X_iso( sys.planetRocky.Mcore, sys.planetRocky.a, sys.star.mass, sys.PRV_tscale, sys.planetRocky.Xiron, sys.planetRocky.period)
-                    min_mass=0
+                    min_mass=20
                     min_mass = prv.calc_min_mass_env(sys, sys.planetEnv.radius, sys.planetEnv.Xiron,  sys.planetEnv.a, sys.star.mass, X_rocky, sys.PRV_tscale, sys.planetEnv.period)
                 except: 
                     pass 
