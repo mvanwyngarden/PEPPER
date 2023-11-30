@@ -18,8 +18,10 @@ Model_data = {}
 filenames=glob.glob('MIST_models/*M.track.eep')
 M_star_all=np.zeros(len(filenames))
 for i in range(len(filenames)): 
-    M_star_all[i]=int(filenames[i].split('M.')[0].split('\\')[1])*1e-4
-
+    if('\\' in filenames[i]): 
+        M_star_all[i]=int(filenames[i].split('M.')[0].split('\\')[1])*1e-4
+    elif('/' in filenames[i]): 
+        M_star_all[i]=int(filenames[i].split('M.')[0].split('/')[1])*1e-4
 def construct_grid(filename):
 
     eeps = np.genfromtxt(filename, skip_header=11, names=True)
