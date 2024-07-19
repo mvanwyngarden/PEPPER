@@ -13,33 +13,38 @@ import pdb
 
 get_shape = cs.eff_scalings.item()
 
-def calc_efficiency(Rp,Mp):
+def calc_efficiency(Rp,Mp, constant=False):
     '''Returns the mass loss efficiency of the planet as a function of its escape velocity 
-        Parameters: 
+        
+    Parameters: 
         Mp - mass of the planet in grams
-        Rp - planet radius in cm'''
-    ## returns the scaled efficiency factor of the Owen & Jackson (2012) evaporation rates
+        Rp - planet radius in cm
+        constant - boolean, if True use constant efficiency rate, if False use scaled'''
+        
+    if constant:
+        return 0.1
+    else:
+        # returns the scaled efficiency factor of the Owen & Jackson (2012) evaporation rates
 
-    # the shape is scaled via the escape velocity to a mass of 7.603262769401823e+27 g
+        # the shape is scaled via the escape velocity to a mass of 7.603262769401823e+27 g
 
-    Mp_scale = 7.603262769401823e+27
+        Mp_scale = 7.603262769401823e+27
 
-    ## Radius scale first 
+        # Radius scale first 
 
-    scaled_eff = 10.**get_shape(np.log10(Rp*Mp_scale/Mp))
+        scaled_eff = 10.**get_shape(np.log10(Rp*Mp_scale/Mp))
 
-    ## this scaled efficiency returns either a scaled value (scaled to max value in table) for the
-    ## efficiency or extropolates the efficiency at a constant value of large planets
-    ## that would be undergoing Roche Lobe overflow in the Owen & Jackson (2012) tables
-    ## E.g. grey region of Figure 5 in Owen & Jackson (2012)
+        # this scaled efficiency returns either a scaled value (scaled to max value in table) for the
+        # efficiency or extropolates the efficiency at a constant value of large planets
+        # that would be undergoing Roche Lobe overflow in the Owen & Jackson (2012) tables
+        # E.g. grey region of Figure 5 in Owen & Jackson (2012)
 
-    ### scale mass
+        # scale mass
 
-    mass_scale = (1. + (np.sqrt(Mp/1e29))**10.)**(1./10.)
+        mass_scale = (1. + (np.sqrt(Mp/1e29))**10.)**(1./10.)
     
-    return scaled_eff * mass_scale
-    #return 0.1
-
+        return scaled_eff * mass_scale
+    
 
 def calc_masslosstime_rocky(system, Rcore, Mcore, a, Teq, Xiron, Tkh_Myr):
     '''Returns the maximized envelope width and the maximized scaled mass loss timescale for the rocky planet 
@@ -75,6 +80,7 @@ def calc_masslosstime_rocky(system, Rcore, Mcore, a, Teq, Xiron, Tkh_Myr):
         system.planetRocky.DR_rcbmax_PE = DR_rcbmaximized
         system.planetRocky.scaled_masslosstime_max_PE = masslosstime_max_rocky
         system.planetRocky.eta= eta
+        
         return masslosstime_max_rocky
     
     else: 
@@ -95,11 +101,8 @@ def max_tmdot_objective(DR_rcb, Rcore, Mcore, Teq, Xiron, Tkh_Myr):
    
     X, _, Rplanet = ps.calc_Rplanet(cs.Rearth2cm(Rcore), DR_rcb, Tkh_Myr, Teq, Xiron)
 
-    #eta = calc_efficiency(cs.Mearth2g(Mcore), Rplanet)
     eta = calc_efficiency( Rplanet, cs.Mearth2g(Mcore))
     
-    #func_to_max = X/ (eta*Rplanet**3)
-    #func_to_max = X*eta/ (Rplanet**3)
     func_to_max = masslosstime_eq(1, 1, X, Rplanet, eta)
     
     return 1/func_to_max    
@@ -116,7 +119,6 @@ def masslosstime_eq(Mcore, a, X, Rplanet, eta):
         eta - atmospheric mass loss efficiency in cgs units'''
 
     masslosstime= X* (cs.Mearth2g(Mcore)**2) * a**2/ (Rplanet**3 *eta)
-    #masslosstime= X* Mcore**2 * a**2 *eta/ (Rplanet**3)
     
     return masslosstime
 
