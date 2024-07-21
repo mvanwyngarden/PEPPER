@@ -1,5 +1,7 @@
 # PEPPER (Primordial, corE-Powered, or PhotoEvaporation Radius valley)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12785928.svg)](https://doi.org/10.5281/zenodo.12785928)
+
 PEPPER tests photoevaporation, core-powered mass loss, and an accretion-limited primordial radius valley model against planetary systems with multiple planets spanning the exoplanet radius valley. 
 Each model returns the minimum core mass of the gas-enveloped planet required for the system to be consistent with a given radius valley emergence mechanism. 
 This minimum mass can then be compared to measured masses for enveloped planets when available to test if a given mechanism can explain the observed system architecture. 
